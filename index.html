@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>InternDrCare | Sign in</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body class="auth-body">
+  <main class="auth-layout">
+
+    <section class="auth-intro">
+      <div class="brand-mark">ID</div>
+      <p class="eyebrow">HOSPITAL WORKFLOW PLATFORM</p>
+      <h1>Better teamwork.<br>Better handovers.</h1>
+
+      <p>
+        Connect senior doctors and interns within the same hospital
+        to organize tasks, cases, and team communication.
+      </p>
+
+      <div class="intro-note">
+        Designed for supervised workflows, not a replacement for
+        clinical judgment.
+      </div>
+    </section>
+
+    <section class="auth-card">
+      <h2 id="authHeading">Welcome back</h2>
+      <p class="muted" id="authSubtitle">
+        Sign in to your InternDrCare account.
+      </p>
+
+      <div class="auth-tabs">
+        <button type="button" id="loginTab" class="tab active">
+          Login
+        </button>
+        <button type="button" id="registerTab" class="tab">
+          Register
+        </button>
+      </div>
+
+      <p id="authMessage" class="message" role="status" aria-live="polite"></p>
+
+      <form id="loginForm">
+        <label for="loginEmail">Email</label>
+        <input
+          id="loginEmail"
+          type="email"
+          autocomplete="email"
+          required
+        >
+
+        <label for="loginPassword">Password</label>
+        <input
+          id="loginPassword"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button class="primary-button full-width" type="submit">
+          Sign in
+        </button>
+      </form>
+
+      <form id="registerForm" hidden>
+        <label for="registerName">Full name</label>
+        <input
+          id="registerName"
+          type="text"
+          maxlength="100"
+          autocomplete="name"
+          required
+        >
+
+        <label for="registerEmail">Email</label>
+        <input
+          id="registerEmail"
+          type="email"
+          maxlength="254"
+          autocomplete="email"
+          required
+        >
+
+        <label for="registerPassword">Password (minimum 8 characters)</label>
+        <input
+          id="registerPassword"
+          type="password"
+          minlength="8"
+          maxlength="128"
+          autocomplete="new-password"
+          required
+        >
+
+        <label for="registerRole">Your role</label>
+        <select id="registerRole" required>
+          <option value="INTERN">Intern</option>
+          <option value="SENIOR">Senior Doctor</option>
+        </select>
+
+        <label for="registerHospital">Hospital name</label>
+        <input
+          id="registerHospital"
+          type="text"
+          maxlength="150"
+          required
+        >
+
+        <label for="registerDepartment">Department</label>
+        <input
+          id="registerDepartment"
+          type="text"
+          maxlength="100"
+          placeholder="e.g. General Medicine"
+        >
+
+        <label for="registerSpecialization">Specialization</label>
+        <input
+          id="registerSpecialization"
+          type="text"
+          maxlength="100"
+          placeholder="Optional"
+        >
+
+        <label for="registerPhone">Phone (optional)</label>
+        <input
+          id="registerPhone"
+          type="tel"
+          maxlength="30"
+          autocomplete="tel"
+        >
+
+        <button class="primary-button full-width" type="submit">
+          Create account
+        </button>
+      </form>
+
+      <p class="small muted">
+        Use a test account while developing. Do not enter real patient
+        information into this student project.
+      </p>
+    </section>
+
+  </main>
+
+  <script>
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
+    const heading = document.getElementById("authHeading");
+    const subtitle = document.getElementById("authSubtitle");
+    const message = document.getElementById("authMessage");
+
+    function showMessage(text, error = false) {
+      message.textContent = text;
+      message.className = error
+        ? "message error"
+        : "message success";
+    }
+
+    function setMode(mode) {
+      const registering = mode === "register";
+
+      loginForm.hidden = registering;
+      registerForm.hidden = !registering;
+
+      loginTab.classList.toggle("active", !registering);
+      registerTab.classList.toggle("active", registering);
+
+      loginTab.setAttribute("aria-selected", String(!registering));
+      registerTab.setAttribute("aria-selected", String(registering));
+
+      heading.textContent = registering
+        ? "Create your account"
+        : "Welcome back";
+
+      subtitle.textContent = registering
+        ? "Register with your hospital details."
+        : "Sign in to your InternDrCare account.";
+
+      showMessage("");
+    }
+
+    loginTab.addEventListener("click", () => setMode("login"));
+    registerTab.addEventListener("click", () => setMode("register"));
+
+    async function submitAuth(endpoint, data) {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || "Request failed.");
+      }
+
+      if (!result.token) {
+        throw new Error("The server did not return an authentication token.");
+      }
+
+      localStorage.setItem("interndrcare_token", result.token);
+      window.location.href = "/app.html";
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      showMessage("Signing in...");
+
+      try {
+        await submitAuth("/api/auth/login", {
+          email: document.getElementById("loginEmail").value.trim(),
+          password: document.getElementById("loginPassword").value
+        });
+      } catch (error) {
+        showMessage(error.message || "Unable to sign in.", true);
+      }
+    });
+
+    registerForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      showMessage("Creating your account...");
+
+      try {
+        await
